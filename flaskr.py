@@ -1,5 +1,6 @@
 from __future__ import with_statement
 import MySQLdb
+import time
 from MySQLdb.cursors import DictCursor
 from flask import Flask, request, session, g, redirect, url_for, abort, render_template, flash
 from contextlib import closing
@@ -30,17 +31,18 @@ def after_request(response):
 @app.route('/')
 def show_entries():
     cur = g.db.cursor(DictCursor)
-    cur.execute('select title, text from entries order by id desc')
-    entries = [dict(title=row['title'].decode('utf-8'), text=row['text'].decode('utf-8')) for row in cur.fetchall()]
+    cur.execute('select title, text, post_date from entries order by id desc')
+    entries = [dict(title=row['title'].decode('utf-8'), text=row['text'].decode('utf-8'),time=row['post_date']) for row in cur.fetchall()]
     return render_template('show_entries.html', entries=entries)
 
 @app.route('/add', methods=['POST'])
 def add_entry():
     if not session.get('logged_in'):
         abort(401)
+    post_time = time.strftime('%Y-%m-%d  %X')
     cur = g.db.cursor()
-    cur.execute('insert into entries (title, text) values (%s, %s)',
-                 [request.form['title'].encode('utf-8'), request.form['text'].encode('utf-8')])
+    cur.execute('insert into entries (title, text, post_date) values (%s, %s, %s)',
+                 [request.form['title'].encode('utf-8'), request.form['text'].encode('utf-8'), post_time.encode('utf-8')])
     cur.close()
     g.db.commit()
 
